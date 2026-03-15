@@ -1,6 +1,6 @@
 <div align="center">
 
-```
+<pre>
 ┌─────────────────────────┐
 │  {P} A ; guard ; B {Q}  │
 │      ════════════       │
@@ -8,7 +8,7 @@
 │   the proof is in the   │
 │         pudding         │
 └─────────────────────────┘
-```
+</pre>
 
 # pudding
 
@@ -180,7 +180,7 @@ The program fails at the boundary rather than silently doing the wrong thing. In
 
 <div align="center">
 
-```
+<pre>
 ┌───────────────────────────────────────────────────────┐
 │                      pudding                          │
 │                                                       │
@@ -199,7 +199,7 @@ The program fails at the boundary rather than silently doing the wrong thing. In
 │ Lean 4 ────────────────────── proof assistant         │
 │ BATS ──────────────────────── conformance tests       │
 └───────────────────────────────────────────────────────┘
-```
+</pre>
 
 </div>
 

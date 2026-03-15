@@ -167,7 +167,7 @@ const architecture = box(archContent, { padding: 1 });
 const readme = (
   <>
     <Center>
-      <CodeBlock>{logo}</CodeBlock>
+      <Raw>{`<pre>\n${logo}\n</pre>\n\n`}</Raw>
 
       <Heading level={1}>pudding</Heading>
 
@@ -308,7 +308,7 @@ pudding check myscript.sh`}</CodeBlock>
 
     <Section title="Architecture">
       <Center>
-        <CodeBlock>{architecture}</CodeBlock>
+        <Raw>{`<pre>\n${architecture}\n</pre>\n\n`}</Raw>
       </Center>
 
       <Paragraph>
