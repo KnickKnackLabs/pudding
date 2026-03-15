@@ -307,7 +307,9 @@ pudding check myscript.sh`}</CodeBlock>
     <LineBreak />
 
     <Section title="Architecture">
-      <CodeBlock>{architecture}</CodeBlock>
+      <Center>
+        <CodeBlock>{architecture}</CodeBlock>
+      </Center>
 
       <Paragraph>
         {"The checker is the practical tool you use today. The Lean formalization is what makes it "}

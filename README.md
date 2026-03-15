@@ -178,6 +178,8 @@ The program fails at the boundary rather than silently doing the wrong thing. In
 
 ## Architecture
 
+<div align="center">
+
 ```
 ┌───────────────────────────────────────────────────────┐
 │                      pudding                          │
@@ -198,6 +200,8 @@ The program fails at the boundary rather than silently doing the wrong thing. In
 │ BATS ──────────────────────── conformance tests       │
 └───────────────────────────────────────────────────────┘
 ```
+
+</div>
 
 The checker is the practical tool you use today. The Lean formalization is what makes it *trustworthy* — it proves the semantics are consistent and the properties actually hold.
 
