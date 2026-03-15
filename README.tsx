@@ -71,17 +71,103 @@ const accepts = [...allTestSrc.matchAll(/@test "accepts (.+?)"/g)].map((m) => m[
 const rejects = [...allTestSrc.matchAll(/@test "rejects (.+?)"/g)].map((m) => m[1]);
 const testCount = accepts.length + rejects.length;
 
+// ── Helpers ──────────────────────────────────────────────────
+
+// Draw a Unicode box around lines of text, auto-sized to content
+function box(lines: string[], { padding = 1 }: { padding?: number } = {}): string {
+  const maxLen = Math.max(...lines.map((l) => l.length));
+  const innerWidth = maxLen + padding * 2;
+  const pad = (s: string) => " ".repeat(padding) + s + " ".repeat(innerWidth - s.length - padding);
+  const top = "┌" + "─".repeat(innerWidth) + "┐";
+  const bot = "└" + "─".repeat(innerWidth) + "┘";
+  const mid = lines.map((l) => "│" + pad(l) + "│");
+  return [top, ...mid, bot].join("\n");
+}
+
+// Draw a labeled box with a title and body lines
+function labeledBox(title: string, body: string[], status: string): string[] {
+  const maxLen = Math.max(title.length, ...body.map((l) => l.length), status.length);
+  const w = maxLen + 2;
+  const pad = (s: string) => " " + s + " ".repeat(w - s.length - 1);
+  return [
+    "┌" + "─".repeat(w) + "┐",
+    "│" + pad(title) + "│",
+    "│" + " ".repeat(w) + "│",
+    ...body.map((l) => "│" + pad(l) + "│"),
+    "│" + " ".repeat(w) + "│",
+    "│" + pad(status) + "│",
+    "└" + "─".repeat(w) + "┘",
+  ];
+}
+
+// Combine box columns side-by-side with a gap
+function sideBySide(columns: string[][], gap = 2): string[] {
+  const heights = columns.map((c) => c.length);
+  const maxHeight = Math.max(...heights);
+  const widths = columns.map((c) => Math.max(...c.map((l) => l.length)));
+  const result: string[] = [];
+  for (let i = 0; i < maxHeight; i++) {
+    result.push(
+      columns
+        .map((col, ci) => (col[i] ?? " ".repeat(widths[ci])).padEnd(widths[ci]))
+        .join(" ".repeat(gap))
+    );
+  }
+  return result;
+}
+
+// ── Diagrams ─────────────────────────────────────────────────
+
+const logo = box([
+  "{P} A ; guard ; B {Q}",
+  "    ════════════",
+  "",
+  " the proof is in the",
+  "       pudding",
+], { padding: 2 });
+
+const checkerBox = labeledBox(
+  "Checker",
+  ['grammar.sh', '', '"is this in', ' the subset?"'],
+  "✓ ready",
+);
+
+const semanticsBox = labeledBox(
+  "Semantics",
+  ['Lean 4', '', '"what does', ' it mean?"'],
+  "◐ planned",
+);
+
+const proofsBox = labeledBox(
+  "Proofs",
+  ['Lean 4', '', '"what can we', ' prove?"'],
+  "◐ planned",
+);
+
+const innerBoxes = sideBySide([checkerBox, semanticsBox, proofsBox]);
+
+const legend = [
+  "",
+  "bash 3.2 ───────────────────── target language",
+  "Lean 4 ────────────────────── proof assistant",
+  "BATS ──────────────────────── conformance tests",
+];
+
+const archContent = [
+  "pudding".padStart(Math.floor(innerBoxes[0].length / 2) + 3),
+  "",
+  ...innerBoxes.map((l) => "  " + l),
+  ...legend,
+];
+
+const architecture = box(archContent, { padding: 1 });
+
 // ── README ───────────────────────────────────────────────────
 
 const readme = (
   <>
     <Center>
-      <CodeBlock>{`    ┌─────────────────────────────┐
-    │  {P} A ; guard ; B {Q}     │
-    │         ═══════             │
-    │    the proof is in the      │
-    │          pudding            │
-    └─────────────────────────────┘`}</CodeBlock>
+      <CodeBlock>{logo}</CodeBlock>
 
       <Heading level={1}>pudding</Heading>
 
@@ -221,29 +307,7 @@ pudding check myscript.sh`}</CodeBlock>
     <LineBreak />
 
     <Section title="Architecture">
-      <CodeBlock>{`┌──────────────────────────────────────────────────┐
-│                    pudding                        │
-│                                                   │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │   Checker    │  │  Semantics   │  │  Proofs  │ │
-│  │             │  │              │  │          │ │
-│  │ grammar.sh  │  │  Lean 4      │  │  Lean 4  │ │
-│  │ "is this in │  │  "what does  │  │  "what   │ │
-│  │  the subset │  │   it mean?"  │  │   can we │ │
-│  │  ?"         │  │              │  │   prove?"│ │
-│  │             │  │  inference   │  │          │ │
-│  │  ✓ ready    │  │  rules       │  │ determi- │ │
-│  │             │  │              │  │ nism,    │ │
-│  │             │  │  ◐ planned   │  │ termi-   │ │
-│  │             │  │              │  │ nation   │ │
-│  │             │  │              │  │          │ │
-│  │             │  │              │  │ ◐ planned│ │
-│  └─────────────┘  └──────────────┘  └──────────┘ │
-│                                                   │
-│  bash 3.2 ──────────────────── target language    │
-│  Lean 4 ───────────────────── proof assistant     │
-│  BATS ─────────────────────── conformance tests   │
-└──────────────────────────────────────────────────┘`}</CodeBlock>
+      <CodeBlock>{architecture}</CodeBlock>
 
       <Paragraph>
         {"The checker is the practical tool you use today. The Lean formalization is what makes it "}

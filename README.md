@@ -1,12 +1,13 @@
 <div align="center">
 
 ```
-    ┌─────────────────────────────┐
-    │  {P} A ; guard ; B {Q}     │
-    │         ═══════             │
-    │    the proof is in the      │
-    │          pudding            │
-    └─────────────────────────────┘
+┌─────────────────────────┐
+│  {P} A ; guard ; B {Q}  │
+│      ════════════       │
+│                         │
+│   the proof is in the   │
+│         pudding         │
+└─────────────────────────┘
 ```
 
 # pudding
@@ -178,29 +179,24 @@ The program fails at the boundary rather than silently doing the wrong thing. In
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────┐
-│                    pudding                        │
-│                                                   │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │   Checker    │  │  Semantics   │  │  Proofs  │ │
-│  │             │  │              │  │          │ │
-│  │ grammar.sh  │  │  Lean 4      │  │  Lean 4  │ │
-│  │ "is this in │  │  "what does  │  │  "what   │ │
-│  │  the subset │  │   it mean?"  │  │   can we │ │
-│  │  ?"         │  │              │  │   prove?"│ │
-│  │             │  │  inference   │  │          │ │
-│  │  ✓ ready    │  │  rules       │  │ determi- │ │
-│  │             │  │              │  │ nism,    │ │
-│  │             │  │  ◐ planned   │  │ termi-   │ │
-│  │             │  │              │  │ nation   │ │
-│  │             │  │              │  │          │ │
-│  │             │  │              │  │ ◐ planned│ │
-│  └─────────────┘  └──────────────┘  └──────────┘ │
-│                                                   │
-│  bash 3.2 ──────────────────── target language    │
-│  Lean 4 ───────────────────── proof assistant     │
-│  BATS ─────────────────────── conformance tests   │
-└──────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                      pudding                          │
+│                                                       │
+│   ┌───────────────┐  ┌────────────┐  ┌──────────────┐ │
+│   │ Checker       │  │ Semantics  │  │ Proofs       │ │
+│   │               │  │            │  │              │ │
+│   │ grammar.sh    │  │ Lean 4     │  │ Lean 4       │ │
+│   │               │  │            │  │              │ │
+│   │ "is this in   │  │ "what does │  │ "what can we │ │
+│   │  the subset?" │  │  it mean?" │  │  prove?"     │ │
+│   │               │  │            │  │              │ │
+│   │ ✓ ready       │  │ ◐ planned  │  │ ◐ planned    │ │
+│   └───────────────┘  └────────────┘  └──────────────┘ │
+│                                                       │
+│ bash 3.2 ───────────────────── target language        │
+│ Lean 4 ────────────────────── proof assistant         │
+│ BATS ──────────────────────── conformance tests       │
+└───────────────────────────────────────────────────────┘
 ```
 
 The checker is the practical tool you use today. The Lean formalization is what makes it *trustworthy* — it proves the semantics are consistent and the properties actually hold.
