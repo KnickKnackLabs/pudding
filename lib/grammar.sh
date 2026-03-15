@@ -1,59 +1,59 @@
 #!/usr/bin/env bash
 # grammar.sh — pudding subset grammar definition and parser
 #
-# The pudding subset of bash (v0):
+# The pudding subset of bash (v0.1):
 #   program     := statement*
-#   statement   := assignment | conditional | command | comment
+#   statement   := assignment | conditional | command | compound | comment
 #   assignment  := NAME '=' STRING
 #   conditional := 'if' test '; then' body ('else' body)? 'fi'
 #   test        := '[' expr ']' | '[[' expr ']]'
 #   expr        := STRING '=' STRING | STRING '!=' STRING
 #                | '-z' STRING | '-n' STRING
 #   body        := statement*
+#   compound    := statement '&&' statement    # short-circuit AND
+#                | statement '||' statement    # short-circuit OR
 #   command     := 'exit' NUMBER | 'return' NUMBER | 'true' | 'false'
+#                | 'echo' STRING*              # stdout
+#                | 'echo' STRING* '>&2'        # stderr
 #   comment     := '#' .*
 #   STRING      := '"' [^"]* '"' | "'" [^']* "'" | NAME | '$' NAME | '${' NAME '}'
 #   NAME        := [a-zA-Z_][a-zA-Z0-9_]*
 #   NUMBER      := [0-9]+
 #
-# Intentionally excluded from v0:
+# Semantics (informal, pending Lean formalization):
+#
+#   && (short-circuit AND):
+#     ⟨A, σ⟩ ⇓ (0, σ')      ⟨B, σ'⟩ ⇓ (n, σ'')
+#     ——————————————————————————————————————————————
+#             ⟨A && B, σ⟩ ⇓ (n, σ'')
+#
+#     ⟨A, σ⟩ ⇓ (n, σ')      n ≠ 0
+#     ——————————————————————————————
+#         ⟨A && B, σ⟩ ⇓ (n, σ')
+#
+#   || (short-circuit OR):
+#     ⟨A, σ⟩ ⇓ (0, σ')
+#     ————————————————————
+#     ⟨A || B, σ⟩ ⇓ (0, σ')
+#
+#     ⟨A, σ⟩ ⇓ (n, σ')      n ≠ 0      ⟨B, σ'⟩ ⇓ (m, σ'')
+#     ————————————————————————————————————————————————————————
+#               ⟨A || B, σ⟩ ⇓ (m, σ'')
+#
+#   >&2 (stderr redirection):
+#     Redirects output of a command to file descriptor 2 (stderr).
+#     No other redirection targets are permitted in the subset.
+#
+# Key property: determinism. Given the same program and initial state,
+# evaluation always produces the same exit code and final state.
+# Provable by structural induction on the AST — each rule's applicability
+# is determined solely by the exit code of sub-evaluations, which are
+# themselves deterministic by the inductive hypothesis.
+#
+# Intentionally excluded:
 #   pipes, subshells, command substitution, arithmetic,
 #   arrays, functions, loops, globs, parameter expansion,
 #   here-docs, process substitution, eval, source
-
-# Patterns that indicate a script has left the pudding subset
-FORBIDDEN_PATTERNS=(
-  # Pipes and process control
-  '|'
-  '&'
-  # Command substitution
-  '$('
-  '`'
-  # Arithmetic
-  '$(('
-  'let '
-  # Arrays
-  'declare -a'
-  'declare -A'
-  # Loops
-  'for '
-  'while '
-  'until '
-  # Functions
-  'function '
-  # Dangerous builtins
-  'eval '
-  'source '
-  '\. '
-  # Heredocs
-  '<<'
-  # Globs and process substitution
-  '<('
-  '>('
-  # Redirection (for now)
-  '>'
-  '<'
-)
 
 # Check if a line contains only constructs in the pudding subset
 # Returns 0 if the line is within the subset, 1 otherwise
@@ -70,15 +70,76 @@ check_line() {
   # set -euo pipefail is valid (common preamble)
   [[ "$trimmed" == "set -"* ]] && return 0
 
-  # Check for forbidden patterns
-  for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-    if [[ "$trimmed" == *"$pattern"* ]]; then
-      # Allow '=' in assignments (not '|' in pipes etc.)
-      # Allow '#' in comments (already handled above)
-      echo "$pattern"
-      return 1
-    fi
-  done
+  # --- Forbidden constructs (order matters: check specific before general) ---
+
+  # Command substitution
+  if [[ "$trimmed" == *'$('* || "$trimmed" == *'`'* ]]; then
+    echo 'command substitution'
+    return 1
+  fi
+
+  # Arithmetic
+  if [[ "$trimmed" == *'$(('* || "$trimmed" == 'let '* ]]; then
+    echo 'arithmetic'
+    return 1
+  fi
+
+  # Arrays
+  if [[ "$trimmed" == 'declare -a'* || "$trimmed" == 'declare -A'* ]]; then
+    echo 'arrays'
+    return 1
+  fi
+
+  # Loops
+  if [[ "$trimmed" == 'for '* || "$trimmed" == 'while '* || "$trimmed" == 'until '* ]]; then
+    echo 'loops'
+    return 1
+  fi
+
+  # Functions
+  if [[ "$trimmed" == 'function '* ]] || [[ "$trimmed" == *'() {'* ]]; then
+    echo 'functions'
+    return 1
+  fi
+
+  # Dangerous builtins
+  if [[ "$trimmed" == 'eval '* || "$trimmed" == 'source '* || "$trimmed" == '. '* ]]; then
+    echo 'dangerous builtin'
+    return 1
+  fi
+
+  # Heredocs
+  if [[ "$trimmed" == *'<<'* ]]; then
+    echo 'heredocs'
+    return 1
+  fi
+
+  # Process substitution
+  if [[ "$trimmed" == *'<('* || "$trimmed" == *'>('* ]]; then
+    echo 'process substitution'
+    return 1
+  fi
+
+  # Pipes (but not ||)
+  if [[ "$trimmed" == *'|'* && "$trimmed" != *'||'* ]]; then
+    echo 'pipes'
+    return 1
+  fi
+
+  # Background execution
+  # & at end of line (but not &&)
+  if [[ "$trimmed" == *'&' && "$trimmed" != *'&&'* ]]; then
+    echo 'background execution'
+    return 1
+  fi
+
+  # Redirection — allow >&2 only, reject everything else
+  # Strip >&2 from the line, then check for remaining redirection
+  local stripped="${trimmed//>&2/}"
+  if [[ "$stripped" == *'>'* || "$stripped" == *'<'* ]]; then
+    echo 'redirection'
+    return 1
+  fi
 
   return 0
 }
