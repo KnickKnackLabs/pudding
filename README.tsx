@@ -43,10 +43,10 @@ const grammar = extractSection("GRAMMAR")
   .join("\n")
   .trim();
 
-// Inference rules
+// Inference rules — preserve blank lines for spacing between rules
 const inferenceRules = extractSection("SEMANTICS")
-  .filter((l) => l.trim().length > 0)
-  .join("\n");
+  .join("\n")
+  .trim();
 
 // Determinism argument
 const detArg = extractSection("DETERMINISM")

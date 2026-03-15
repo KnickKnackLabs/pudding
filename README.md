@@ -141,16 +141,20 @@ Read `⟨A, σ⟩ ⇓ (n, σ')` as: "program A, in state σ (all variable bindin
   ⟨A, σ⟩ ⇓ (0, σ')      ⟨B, σ'⟩ ⇓ (n, σ'')
   ——————————————————————————————————————————————
           ⟨A && B, σ⟩ ⇓ (n, σ'')
+
   ⟨A, σ⟩ ⇓ (n, σ')      n ≠ 0
   ——————————————————————————————
       ⟨A && B, σ⟩ ⇓ (n, σ')
+
 || (short-circuit OR):
   ⟨A, σ⟩ ⇓ (0, σ')
   ————————————————————
   ⟨A || B, σ⟩ ⇓ (0, σ')
+
   ⟨A, σ⟩ ⇓ (n, σ')      n ≠ 0      ⟨B, σ'⟩ ⇓ (m, σ'')
   ————————————————————————————————————————————————————————
             ⟨A || B, σ⟩ ⇓ (m, σ'')
+
 >&2 (stderr redirection):
   Redirects output of a command to file descriptor 2 (stderr).
   No other redirection targets are permitted in the subset.
