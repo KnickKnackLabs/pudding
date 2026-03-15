@@ -1,0 +1,4 @@
+[tools]
+"github:leanprover/lean4" = "4.28.0"
+bats = "1.13.0"
+usage = "3.0.0"
