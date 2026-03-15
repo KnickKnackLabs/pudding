@@ -134,7 +134,9 @@ Every construct in the subset has **inference rules** — a mathematical definit
 
 Read `⟨A, σ⟩ ⇓ (n, σ')` as: "program A, in state σ (all variable bindings), evaluates to exit code n and new state σ'. The line above is the premise; below the line is the conclusion."
 
-```
+<div align="center">
+
+<pre>
 && (short-circuit AND):
   ⟨A, σ⟩ ⇓ (0, σ')      ⟨B, σ'⟩ ⇓ (n, σ'')
   ——————————————————————————————————————————————
@@ -152,7 +154,9 @@ Read `⟨A, σ⟩ ⇓ (n, σ')` as: "program A, in state σ (all variable bindin
 >&2 (stderr redirection):
   Redirects output of a command to file descriptor 2 (stderr).
   No other redirection targets are permitted in the subset.
-```
+</pre>
+
+</div>
 
 > Key property: determinism. Given the same program and initial state, evaluation always produces the same exit code and final state. Provable by structural induction on the AST — each rule's applicability is determined solely by the exit code of sub-evaluations, which are themselves deterministic by the inductive hypothesis.
 

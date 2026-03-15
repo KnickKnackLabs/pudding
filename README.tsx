@@ -277,7 +277,9 @@ pudding check myscript.sh`}</CodeBlock>
         {" as: \"program A, in state σ (all variable bindings), evaluates to exit code n and new state σ'. The line above is the premise; below the line is the conclusion.\""}
       </Paragraph>
 
-      <CodeBlock>{inferenceRules}</CodeBlock>
+      <Center>
+        <Raw>{`<pre>\n${inferenceRules}\n</pre>\n\n`}</Raw>
+      </Center>
 
       <Blockquote>
         {detArg}
