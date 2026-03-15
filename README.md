@@ -162,15 +162,19 @@ Read `⟨A, σ⟩ ⇓ (n, σ')` as: "program A, in state σ (all variable bindin
 
 Two verified pudding programs compose correctly when the postcondition of the first satisfies the precondition of the second. When specs don't perfectly align, a validation guard at the boundary catches the gap:
 
-```
-  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = ok    ⟨B, σ'⟩ ⇓ (n, σ'')
-  ─────────────────────────────────────────────────────────────────
-                  ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (n, σ'')
+<div align="center">
 
-  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = fail
-  ────────────────────────────────────────────
-       ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (1, σ')
-```
+<pre>
+⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = ok    ⟨B, σ'⟩ ⇓ (n, σ'')
+─────────────────────────────────────────────────────────────────
+                ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (n, σ'')
+
+⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = fail
+────────────────────────────────────────────
+     ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (1, σ')
+</pre>
+
+</div>
 
 The program fails at the boundary rather than silently doing the wrong thing. In bash, this is natural — validate between stages.
 

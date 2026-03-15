@@ -291,13 +291,17 @@ pudding check myscript.sh`}</CodeBlock>
         {"Two verified pudding programs compose correctly when the postcondition of the first satisfies the precondition of the second. When specs don't perfectly align, a validation guard at the boundary catches the gap:"}
       </Paragraph>
 
-      <CodeBlock>{`  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = ok    ⟨B, σ'⟩ ⇓ (n, σ'')
-  ─────────────────────────────────────────────────────────────────
-                  ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (n, σ'')
+      <Center>
+        <Raw>{`<pre>
+⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = ok    ⟨B, σ'⟩ ⇓ (n, σ'')
+─────────────────────────────────────────────────────────────────
+                ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (n, σ'')
 
-  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = fail
-  ────────────────────────────────────────────
-       ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (1, σ')`}</CodeBlock>
+⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = fail
+────────────────────────────────────────────
+     ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (1, σ')
+</pre>\n\n`}</Raw>
+      </Center>
 
       <Paragraph>
         {"The program fails at the boundary rather than silently doing the wrong thing. In bash, this is natural — validate between stages."}
