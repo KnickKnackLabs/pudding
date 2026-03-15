@@ -1,0 +1,327 @@
+/** @jsxImportSource jsx-md */
+
+import { readFileSync, readdirSync } from "fs";
+import { join, resolve } from "path";
+
+import {
+  Heading, Paragraph, CodeBlock, Blockquote, LineBreak, HR,
+  Bold, Code, Link, Italic,
+  Badge, Badges, Center, Details, Section,
+  Table, TableHead, TableRow, Cell,
+  List, Item,
+  Raw, HtmlLink, Sub, Align, HtmlTable, HtmlTr, HtmlTd,
+} from "readme/src/components";
+
+// ── Dynamic data ─────────────────────────────────────────────
+
+const REPO_DIR = resolve(import.meta.dirname);
+
+// Extract grammar version from grammar.sh
+const grammarSrc = readFileSync(join(REPO_DIR, "lib/grammar.sh"), "utf-8");
+const versionMatch = grammarSrc.match(/pudding subset of bash \((v[\d.]+)\)/);
+const subsetVersion = versionMatch?.[1] ?? "v0";
+
+// Extract the grammar definition from comments (stop at "Semantics")
+const grammarLines = grammarSrc.split("\n");
+const grammarStart = grammarLines.findIndex((l) => l.includes("program     :="));
+const grammarEnd = grammarLines.findIndex((l, i) => i > grammarStart && (l.includes("Semantics") || !l.startsWith("#")));
+const grammar = grammarLines
+  .slice(grammarStart, grammarEnd)
+  .map((l) => l.replace(/^#\s{0,3}/, ""))
+  .join("\n")
+  .trim();
+
+// Extract inference rules from comments
+const rulesStart = grammarLines.findIndex((l) => l.includes("Semantics (informal"));
+const rulesEnd = grammarLines.findIndex((l, i) => i > rulesStart && l.includes("Key property:"));
+const inferenceRules = grammarLines
+  .slice(rulesStart + 1, rulesEnd)
+  .map((l) => l.replace(/^#\s{0,3}/, ""))
+  .filter((l) => l.trim().length > 0)
+  .join("\n");
+
+// Extract the determinism argument
+const detLine = grammarLines.find((l) => l.includes("Key property:"));
+const detIdx = grammarLines.indexOf(detLine!);
+const detEndIdx = grammarLines.findIndex((l, i) => i > detIdx && (l.includes("Intentionally") || !l.startsWith("#")));
+const detArg = grammarLines
+  .slice(detIdx, detEndIdx)
+  .map((l) => l.replace(/^#\s{0,3}/, ""))
+  .join(" ")
+  .trim();
+
+// Count tests and extract test names
+const testDir = join(REPO_DIR, "test");
+const testFiles = readdirSync(testDir).filter((f) => f.endsWith(".bats"));
+const testCount = testFiles.reduce((sum, f) => {
+  const content = readFileSync(join(testDir, f), "utf-8");
+  return sum + (content.match(/@test /g)?.length ?? 0);
+}, 0);
+
+const testSrc = readFileSync(join(REPO_DIR, "test/check.bats"), "utf-8");
+const accepts = [...testSrc.matchAll(/@test "accepts (.+?)"/g)].map((m) => m[1]);
+const rejects = [...testSrc.matchAll(/@test "rejects (.+?)"/g)].map((m) => m[1]);
+
+// Extract excluded constructs from comments (only the lines listing constructs)
+const excludedLine = grammarLines.find((l) => l.includes("Intentionally excluded:"));
+const excludedIdx = grammarLines.indexOf(excludedLine!);
+const excludedEndIdx = grammarLines.findIndex((l, i) => i > excludedIdx && !l.startsWith("#"));
+const excluded = grammarLines
+  .slice(excludedIdx + 1, excludedEndIdx)
+  .map((l) => l.replace(/^#\s+/, "").trim())
+  .filter((l) => l.length > 0)
+  .join(" ")
+  .replace(/,\s*,/g, ",");
+
+// ── README ───────────────────────────────────────────────────
+
+const readme = (
+  <>
+    <Center>
+      <CodeBlock>{`    ┌─────────────────────────────┐
+    │  {P} A ; guard ; B {Q}     │
+    │         ═══════             │
+    │    the proof is in the      │
+    │          pudding            │
+    └─────────────────────────────┘`}</CodeBlock>
+
+      <Heading level={1}>pudding</Heading>
+
+      <Paragraph>
+        <Bold>A formally verified subset of bash.</Bold>
+      </Paragraph>
+
+      <Paragraph>
+        {"Start small. Prove everything. Grow from there."}
+      </Paragraph>
+
+      <Badges>
+        <Badge label="subset" value={subsetVersion} color="7c3aed" />
+        <Badge label="tests" value={`${testCount} passing`} color="brightgreen" />
+        <Badge label="proof assistant" value="Lean 4" color="blue" href="https://lean-lang.org" />
+        <Badge label="shell" value="bash 3.2" color="4EAA25" logo="gnubash" logoColor="white" />
+      </Badges>
+    </Center>
+
+    <LineBreak />
+
+    <Section title="Why?">
+      <Paragraph>
+        {"Bash is the lingua franca of human/agent collaboration. It's what we write, what agents write, what "}
+        <Link href="https://mise.jdx.dev">mise</Link>
+        {" tasks run. But bash is also notoriously tricky — subtle semantics, invisible edge cases, behaviors that surprise even experienced users."}
+      </Paragraph>
+
+      <Paragraph>
+        {"Pudding asks: what if we could "}
+        <Bold>prove</Bold>
+        {" that a bash script does what it claims? Not test it, not lint it — "}
+        <Italic>prove</Italic>
+        {" it. Mathematically. Reproducibility becomes a theorem, not an experiment."}
+      </Paragraph>
+
+      <Paragraph>
+        {"The approach: define a minimal subset of bash with "}
+        <Bold>formal operational semantics</Bold>
+        {", build a checker that enforces it, and grow the subset one construct at a time — each addition backed by proof."}
+      </Paragraph>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Quick start">
+      <CodeBlock lang="bash">{`# Install
+shiv install pudding
+
+# Check if a script stays within the verified subset
+pudding check myscript.sh`}</CodeBlock>
+
+      <Paragraph>
+        {"A script that passes "}
+        <Code>pudding check</Code>
+        {" uses only constructs with defined semantics and provable properties."}
+      </Paragraph>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="The subset">
+      <Paragraph>
+        {"Pudding "}
+        {subsetVersion}
+        {" accepts a deliberately minimal fragment of bash:"}
+      </Paragraph>
+
+      <HtmlTable>
+        <HtmlTr>
+          <HtmlTd width="50%" valign="top">
+            <Paragraph><Bold>Inside the subset</Bold></Paragraph>
+            <List>
+              {accepts.map((a) => <Item><Code>{a}</Code></Item>)}
+            </List>
+          </HtmlTd>
+          <HtmlTd width="50%" valign="top">
+            <Paragraph><Bold>Outside the subset</Bold></Paragraph>
+            <List>
+              {rejects.map((r) => <Item><Code>{r}</Code></Item>)}
+            </List>
+          </HtmlTd>
+        </HtmlTr>
+      </HtmlTable>
+
+      <Details summary="Formal grammar">
+        <CodeBlock>{grammar}</CodeBlock>
+      </Details>
+
+      <Details summary="Intentionally excluded">
+        <Paragraph>{excluded}</Paragraph>
+      </Details>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Formal semantics">
+      <Paragraph>
+        {"Every construct in the subset has "}
+        <Bold>inference rules</Bold>
+        {" — a mathematical definition of what it means. These are the foundation that Lean 4 will mechanize."}
+      </Paragraph>
+
+      <Paragraph>
+        {"Read "}
+        <Code>{`⟨A, σ⟩ ⇓ (n, σ')`}</Code>
+        {" as: \"program A, in state σ (all variable bindings), evaluates to exit code n and new state σ'. The line above is the premise; below the line is the conclusion.\""}
+      </Paragraph>
+
+      <CodeBlock>{inferenceRules}</CodeBlock>
+
+      <Blockquote>
+        {detArg}
+      </Blockquote>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Composition">
+      <Paragraph>
+        {"Two verified pudding programs compose correctly when the postcondition of the first satisfies the precondition of the second. When specs don't perfectly align, a validation guard at the boundary catches the gap:"}
+      </Paragraph>
+
+      <CodeBlock>{`  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = ok    ⟨B, σ'⟩ ⇓ (n, σ'')
+  ─────────────────────────────────────────────────────────────────
+                  ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (n, σ'')
+
+  ⟨A, σ⟩ ⇓ (0, σ')    guard(P_B, σ') = fail
+  ────────────────────────────────────────────
+       ⟨A ; guard(P_B) ; B, σ⟩ ⇓ (1, σ')`}</CodeBlock>
+
+      <Paragraph>
+        {"The program fails at the boundary rather than silently doing the wrong thing. In bash, this is natural — validate between stages."}
+      </Paragraph>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Architecture">
+      <CodeBlock>{`┌──────────────────────────────────────────────────┐
+│                    pudding                        │
+│                                                   │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────┐ │
+│  │   Checker    │  │  Semantics   │  │  Proofs  │ │
+│  │             │  │              │  │          │ │
+│  │ grammar.sh  │  │  Lean 4      │  │  Lean 4  │ │
+│  │ "is this in │  │  "what does  │  │  "what   │ │
+│  │  the subset │  │   it mean?"  │  │   can we │ │
+│  │  ?"         │  │              │  │   prove?"│ │
+│  │             │  │  inference   │  │          │ │
+│  │  ✓ ready    │  │  rules       │  │ determi- │ │
+│  │             │  │              │  │ nism,    │ │
+│  │             │  │  ◐ planned   │  │ termi-   │ │
+│  │             │  │              │  │ nation   │ │
+│  │             │  │              │  │          │ │
+│  │             │  │              │  │ ◐ planned│ │
+│  └─────────────┘  └──────────────┘  └──────────┘ │
+│                                                   │
+│  bash 3.2 ──────────────────── target language    │
+│  Lean 4 ───────────────────── proof assistant     │
+│  BATS ─────────────────────── conformance tests   │
+└──────────────────────────────────────────────────┘`}</CodeBlock>
+
+      <Paragraph>
+        {"The checker is the practical tool you use today. The Lean formalization is what makes it "}
+        <Italic>trustworthy</Italic>
+        {" — it proves the semantics are consistent and the properties actually hold."}
+      </Paragraph>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Roadmap">
+      <Paragraph>
+        {"The subset grows one construct at a time. Each addition is a deliberate decision:"}
+      </Paragraph>
+
+      <HtmlTable>
+        <HtmlTr>
+          <HtmlTd width="50%" valign="top">
+            <Paragraph>
+              <Bold>Next up</Bold>{"\n"}
+              {"Constructs that the checker itself needs — eating our own pudding."}
+            </Paragraph>
+            <List>
+              <Item><Code>source</Code>{" — file inclusion (needed for lib/ pattern)"}</Item>
+              <Item><Code>$()</Code>{" — command substitution (the big one)"}</Item>
+              <Item>{"Lean 4 AST definition"}</Item>
+              <Item>{"Lean 4 operational semantics"}</Item>
+            </List>
+          </HtmlTd>
+          <HtmlTd width="50%" valign="top">
+            <Paragraph>
+              <Bold>Eventually</Bold>{"\n"}
+              {"Where this leads if the foundation holds."}
+            </Paragraph>
+            <List>
+              <Item>{"Verified interpreter for the subset"}</Item>
+              <Item>{"External command contracts (axiomatic specs for tools)"}</Item>
+              <Item>{"TEE integration for verified channel composition"}</Item>
+              <Item>{"Self-hosting: pudding verifies pudding"}</Item>
+            </List>
+          </HtmlTd>
+        </HtmlTr>
+      </HtmlTable>
+    </Section>
+
+    <LineBreak />
+
+    <Section title="Development">
+      <CodeBlock lang="bash">{`git clone https://github.com/KnickKnackLabs/pudding.git
+cd pudding && mise trust && mise install
+mise run test`}</CodeBlock>
+
+      <Paragraph>
+        {`${testCount} tests across ${testFiles.length} suite${testFiles.length === 1 ? "" : "s"} — ${accepts.length} acceptance, ${rejects.length} rejection. Tests use `}
+        <Link href="https://github.com/bats-core/bats-core">BATS</Link>
+        {"."}
+      </Paragraph>
+    </Section>
+
+    <LineBreak />
+
+    <Center>
+      <HR />
+
+      <Sub>
+        {"Bash doesn't have formal semantics."}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        {"So we're writing them."}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        {"This README was created using "}
+        <HtmlLink href="https://github.com/KnickKnackLabs/readme">readme</HtmlLink>
+        {"."}
+      </Sub>
+    </Center>
+  </>
+);
+
+console.log(readme);
