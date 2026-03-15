@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # grammar.sh — pudding subset grammar definition and parser
 #
+# --- BEGIN GRAMMAR ---
 # The pudding subset of bash (v0.1):
 #   program     := statement*
 #   statement   := assignment | conditional | command | compound | comment
@@ -19,9 +20,9 @@
 #   STRING      := '"' [^"]* '"' | "'" [^']* "'" | NAME | '$' NAME | '${' NAME '}'
 #   NAME        := [a-zA-Z_][a-zA-Z0-9_]*
 #   NUMBER      := [0-9]+
+# --- END GRAMMAR ---
 #
-# Semantics (informal, pending Lean formalization):
-#
+# --- BEGIN SEMANTICS ---
 #   && (short-circuit AND):
 #     ⟨A, σ⟩ ⇓ (0, σ')      ⟨B, σ'⟩ ⇓ (n, σ'')
 #     ——————————————————————————————————————————————
@@ -43,17 +44,21 @@
 #   >&2 (stderr redirection):
 #     Redirects output of a command to file descriptor 2 (stderr).
 #     No other redirection targets are permitted in the subset.
+# --- END SEMANTICS ---
 #
+# --- BEGIN DETERMINISM ---
 # Key property: determinism. Given the same program and initial state,
 # evaluation always produces the same exit code and final state.
 # Provable by structural induction on the AST — each rule's applicability
 # is determined solely by the exit code of sub-evaluations, which are
 # themselves deterministic by the inductive hypothesis.
+# --- END DETERMINISM ---
 #
-# Intentionally excluded:
-#   pipes, subshells, command substitution, arithmetic,
-#   arrays, functions, loops, globs, parameter expansion,
-#   here-docs, process substitution, eval, source
+# --- BEGIN EXCLUDED ---
+# pipes, subshells, command substitution, arithmetic,
+# arrays, functions, loops, globs, parameter expansion,
+# here-docs, process substitution, eval, source
+# --- END EXCLUDED ---
 
 # Check if a line contains only constructs in the pudding subset
 # Returns 0 if the line is within the subset, 1 otherwise

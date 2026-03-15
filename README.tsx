@@ -16,62 +16,60 @@ import {
 
 const REPO_DIR = resolve(import.meta.dirname);
 
-// Extract grammar version from grammar.sh
+// Extract a section between sentinel markers from grammar.sh
+// Markers look like: # --- BEGIN GRAMMAR --- / # --- END GRAMMAR ---
 const grammarSrc = readFileSync(join(REPO_DIR, "lib/grammar.sh"), "utf-8");
+const grammarLines = grammarSrc.split("\n");
+
+function extractSection(name: string): string[] {
+  const begin = `# --- BEGIN ${name} ---`;
+  const end = `# --- END ${name} ---`;
+  const startIdx = grammarLines.findIndex((l) => l.trim() === begin);
+  const endIdx = grammarLines.findIndex((l) => l.trim() === end);
+  if (startIdx === -1) throw new Error(`Marker not found in grammar.sh: ${begin}`);
+  if (endIdx === -1) throw new Error(`Marker not found in grammar.sh: ${end}`);
+  return grammarLines
+    .slice(startIdx + 1, endIdx)
+    .map((l) => l.replace(/^#\s{0,3}/, ""));
+}
+
+// Version
 const versionMatch = grammarSrc.match(/pudding subset of bash \((v[\d.]+)\)/);
 const subsetVersion = versionMatch?.[1] ?? "v0";
 
-// Extract the grammar definition from comments (stop at "Semantics")
-const grammarLines = grammarSrc.split("\n");
-const grammarStart = grammarLines.findIndex((l) => l.includes("program     :="));
-const grammarEnd = grammarLines.findIndex((l, i) => i > grammarStart && (l.includes("Semantics") || !l.startsWith("#")));
-const grammar = grammarLines
-  .slice(grammarStart, grammarEnd)
-  .map((l) => l.replace(/^#\s{0,3}/, ""))
+// Grammar
+const grammar = extractSection("GRAMMAR")
+  .filter((l) => !l.startsWith("The pudding subset"))
   .join("\n")
   .trim();
 
-// Extract inference rules from comments
-const rulesStart = grammarLines.findIndex((l) => l.includes("Semantics (informal"));
-const rulesEnd = grammarLines.findIndex((l, i) => i > rulesStart && l.includes("Key property:"));
-const inferenceRules = grammarLines
-  .slice(rulesStart + 1, rulesEnd)
-  .map((l) => l.replace(/^#\s{0,3}/, ""))
+// Inference rules
+const inferenceRules = extractSection("SEMANTICS")
   .filter((l) => l.trim().length > 0)
   .join("\n");
 
-// Extract the determinism argument
-const detLine = grammarLines.find((l) => l.includes("Key property:"));
-const detIdx = grammarLines.indexOf(detLine!);
-const detEndIdx = grammarLines.findIndex((l, i) => i > detIdx && (l.includes("Intentionally") || !l.startsWith("#")));
-const detArg = grammarLines
-  .slice(detIdx, detEndIdx)
-  .map((l) => l.replace(/^#\s{0,3}/, ""))
+// Determinism argument
+const detArg = extractSection("DETERMINISM")
   .join(" ")
   .trim();
 
-// Count tests and extract test names
+// Excluded constructs — split on commas, filter empties, rejoin
+const excluded = extractSection("EXCLUDED")
+  .join(" ")
+  .split(",")
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0)
+  .join(", ");
+
+// Test names — scan all test files for accepts/rejects
 const testDir = join(REPO_DIR, "test");
 const testFiles = readdirSync(testDir).filter((f) => f.endsWith(".bats"));
-const testCount = testFiles.reduce((sum, f) => {
-  const content = readFileSync(join(testDir, f), "utf-8");
-  return sum + (content.match(/@test /g)?.length ?? 0);
-}, 0);
-
-const testSrc = readFileSync(join(REPO_DIR, "test/check.bats"), "utf-8");
-const accepts = [...testSrc.matchAll(/@test "accepts (.+?)"/g)].map((m) => m[1]);
-const rejects = [...testSrc.matchAll(/@test "rejects (.+?)"/g)].map((m) => m[1]);
-
-// Extract excluded constructs from comments (only the lines listing constructs)
-const excludedLine = grammarLines.find((l) => l.includes("Intentionally excluded:"));
-const excludedIdx = grammarLines.indexOf(excludedLine!);
-const excludedEndIdx = grammarLines.findIndex((l, i) => i > excludedIdx && !l.startsWith("#"));
-const excluded = grammarLines
-  .slice(excludedIdx + 1, excludedEndIdx)
-  .map((l) => l.replace(/^#\s+/, "").trim())
-  .filter((l) => l.length > 0)
-  .join(" ")
-  .replace(/,\s*,/g, ",");
+const allTestSrc = testFiles
+  .map((f) => readFileSync(join(testDir, f), "utf-8"))
+  .join("\n");
+const accepts = [...allTestSrc.matchAll(/@test "accepts (.+?)"/g)].map((m) => m[1]);
+const rejects = [...allTestSrc.matchAll(/@test "rejects (.+?)"/g)].map((m) => m[1]);
+const testCount = accepts.length + rejects.length;
 
 // ── README ───────────────────────────────────────────────────
 
